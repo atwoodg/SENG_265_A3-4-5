@@ -39,8 +39,10 @@ class Post:
         else:
             return False
 
+    #Returns readable blog post
     def __str__(self):
         return f"Code: {self.code}\nDate Posted: {self.creation}\n\n{self.title}\n{self.text}\n\nLast Updated: {self.update}"
 
+    #Returns post attributes
     def __rep__(self):
         return f"code={self.code}, title={self.title}, text={self.text}, creation={self.creation}, update={self.update}"

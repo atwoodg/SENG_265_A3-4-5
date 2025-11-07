@@ -34,11 +34,13 @@ class PostTest(unittest.TestCase):
 
     #Tests output contain proper text and title
     def test_post_str(self):
-        example_output = str(self.post)
+        example_output = self.post.__str__()
         self.assertIn("Test Title", example_output)
         self.assertIn("Test Text", example_output)
         self.assertIn(str(self.post.code), example_output)
 
+if __name__ == '__main__':
+    unittest.main()
 
 
 
