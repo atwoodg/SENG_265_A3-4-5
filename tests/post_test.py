@@ -39,6 +39,8 @@ class PostTest(unittest.TestCase):
         self.assertIn("Test Text", example_output)
         self.assertIn(str(self.post.code), example_output)
 
+if __name__ == '__main__':
+    unittest.main()
 
 
 
