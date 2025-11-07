@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 from unittest import main
 from blogging.controller import Controller
