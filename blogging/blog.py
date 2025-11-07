@@ -39,7 +39,7 @@ class Blog:
 
     #Sorts posts in newest order
     def list_posts(self):
-        self.posts.sort(reverse=True)
+        self.posts.sort(key=lambda p: p.code, reverse=True)
         return self.posts
 
     #Output blog
