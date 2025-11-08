@@ -4,17 +4,19 @@ from datetime import datetime
 
 class Controller:
     """
-    Step 5: implement update_post and delete_post.
+    Final step: tiny debug helper and comment polish.
+    All tests should pass with this version.
     """
 
     def __init__(self):
         self.logged_in = False
-        self.blogs = []
-        self.current_blog = None
-        self.next_post_code = 1
+        self.blogs = []           # list of Blog objects
+        self.current_blog = None  # currently selected Blog (or None)
+        self.next_post_code = 1   # increases every time we create a post
 
     # ---------- LOGIN / LOGOUT ----------
     def login(self, username, password):
+        # Only accept this pair (per tests/spec)
         if self.logged_in:
             return False
         if username == "user" and password == "blogging2025":
@@ -33,6 +35,7 @@ class Controller:
     def create_blog(self, id, name, url, email):
         if not self.logged_in:
             return None
+        # prevent duplicate ids
         for b in self.blogs:
             if b.id == id:
                 return None
@@ -51,12 +54,12 @@ class Controller:
     def retrieve_blogs(self, keyword):
         if not self.logged_in:
             return None
-        out = []
+        result = []
         kw = (keyword or "").lower()
         for b in self.blogs:
             if kw in b.name.lower():
-                out.append(b)
-        return out
+                result.append(b)
+        return result
 
     def list_blogs(self):
         if not self.logged_in:
@@ -66,15 +69,18 @@ class Controller:
     def update_blog(self, old_id, new_id, new_name, new_url, new_email):
         if not self.logged_in:
             return False
+        # cannot update the current blog
         if self.current_blog is not None and self.current_blog.id == old_id:
             return False
         target = self.search_blog(old_id)
         if target is None:
             return False
+        # new id must be unused unless unchanged
         if new_id != old_id:
             for b in self.blogs:
                 if b.id == new_id:
                     return False
+        # apply changes
         target.id = new_id
         target.name = new_name
         target.url = new_url
@@ -84,6 +90,7 @@ class Controller:
     def delete_blog(self, id):
         if not self.logged_in:
             return False
+        # cannot delete the current blog
         if self.current_blog is not None and self.current_blog.id == id:
             return False
         for i, b in enumerate(self.blogs):
@@ -141,6 +148,7 @@ class Controller:
             return None
         if self.current_blog is None:
             return None
+        # newest first (Blog.list_posts sorts by code desc)
         return self.current_blog.list_posts()
 
     def update_post(self, code, title, text):
@@ -151,7 +159,6 @@ class Controller:
         post = self.current_blog.get_post(code)
         if post is None:
             return False
-        # update title + text, bump timestamp
         return post.update_post(updated_title=title, updated_text=text, updated_time=datetime.now())
 
     def delete_post(self, code):
@@ -160,3 +167,8 @@ class Controller:
         if self.current_blog is None:
             return False
         return self.current_blog.remove_post(code)
+
+    # ---------- tiny helper ----------
+    def debug_blog_count(self):
+        # small helper used while testing locally
+        print(f"[debug] total blogs: {len(self.blogs)}")
