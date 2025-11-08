@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Controller:
     """
-    Step 2: add blog read ops: create_blog, search_blog, retrieve_blogs, list_blogs.
+    Step 3: update_blog, delete_blog, set_current_blog, unset_current_blog, get_current_blog.
     """
 
     def __init__(self):
@@ -29,11 +29,10 @@ class Controller:
         self.current_blog = None
         return True
 
-    # ---------- BLOG READ OPS ----------
+    # ---------- BLOG OPS ----------
     def create_blog(self, id, name, url, email):
         if not self.logged_in:
             return None
-        # no duplicate ids
         for b in self.blogs:
             if b.id == id:
                 return None
@@ -63,3 +62,54 @@ class Controller:
         if not self.logged_in:
             return None
         return list(self.blogs)
+
+    def update_blog(self, old_id, new_id, new_name, new_url, new_email):
+        if not self.logged_in:
+            return False
+        # cannot update the current blog; must unset first
+        if self.current_blog is not None and self.current_blog.id == old_id:
+            return False
+        target = self.search_blog(old_id)
+        if target is None:
+            return False
+        # new id must be either same or unused
+        if new_id != old_id:
+            for b in self.blogs:
+                if b.id == new_id:
+                    return False
+        target.id = new_id
+        target.name = new_name
+        target.url = new_url
+        target.email = new_email
+        return True
+
+    def delete_blog(self, id):
+        if not self.logged_in:
+            return False
+        # cannot delete the current blog
+        if self.current_blog is not None and self.current_blog.id == id:
+            return False
+        for i, b in enumerate(self.blogs):
+            if b.id == id:
+                del self.blogs[i]
+                return True
+        return False
+
+    # ---------- CURRENT BLOG ----------
+    def set_current_blog(self, id):
+        if not self.logged_in:
+            return
+        found = None
+        for b in self.blogs:
+            if b.id == id:
+                found = b
+                break
+        self.current_blog = found
+
+    def unset_current_blog(self):
+        self.current_blog = None
+
+    def get_current_blog(self):
+        if not self.logged_in:
+            return None
+        return self.current_blog
