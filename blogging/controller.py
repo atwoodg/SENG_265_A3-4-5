@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Controller:
     """
-    Step 3: update_blog, delete_blog, set_current_blog, unset_current_blog, get_current_blog.
+    Step 4: add post creation + read-only ops (search/retrieve/list).
     """
 
     def __init__(self):
@@ -66,13 +66,11 @@ class Controller:
     def update_blog(self, old_id, new_id, new_name, new_url, new_email):
         if not self.logged_in:
             return False
-        # cannot update the current blog; must unset first
         if self.current_blog is not None and self.current_blog.id == old_id:
             return False
         target = self.search_blog(old_id)
         if target is None:
             return False
-        # new id must be either same or unused
         if new_id != old_id:
             for b in self.blogs:
                 if b.id == new_id:
@@ -86,7 +84,6 @@ class Controller:
     def delete_blog(self, id):
         if not self.logged_in:
             return False
-        # cannot delete the current blog
         if self.current_blog is not None and self.current_blog.id == id:
             return False
         for i, b in enumerate(self.blogs):
@@ -99,12 +96,11 @@ class Controller:
     def set_current_blog(self, id):
         if not self.logged_in:
             return
-        found = None
+        self.current_blog = None
         for b in self.blogs:
             if b.id == id:
-                found = b
+                self.current_blog = b
                 break
-        self.current_blog = found
 
     def unset_current_blog(self):
         self.current_blog = None
@@ -113,3 +109,37 @@ class Controller:
         if not self.logged_in:
             return None
         return self.current_blog
+
+    # ---------- POST READ OPS ----------
+    def create_post(self, title, text):
+        if not self.logged_in:
+            return None
+        if self.current_blog is None:
+            return None
+        now = datetime.now()
+        p = Post(self.next_post_code, title, text, now, now)
+        self.current_blog.add_post(p)
+        self.next_post_code += 1
+        return p
+
+    def search_post(self, code):
+        if not self.logged_in:
+            return None
+        if self.current_blog is None:
+            return None
+        return self.current_blog.get_post(code)
+
+    def retrieve_posts(self, keyword):
+        if not self.logged_in:
+            return None
+        if self.current_blog is None:
+            return None
+        return self.current_blog.retrieve_post(keyword)
+
+    def list_posts(self):
+        if not self.logged_in:
+            return None
+        if self.current_blog is None:
+            return None
+        # Blog.list_posts() already sorts newest-first by code
+        return self.current_blog.list_posts()
