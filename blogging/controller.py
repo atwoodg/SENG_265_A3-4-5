@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Controller:
     """
-    Step 4: add post creation + read-only ops (search/retrieve/list).
+    Step 5: implement update_post and delete_post.
     """
 
     def __init__(self):
@@ -110,7 +110,7 @@ class Controller:
             return None
         return self.current_blog
 
-    # ---------- POST READ OPS ----------
+    # ---------- POSTS ----------
     def create_post(self, title, text):
         if not self.logged_in:
             return None
@@ -141,5 +141,22 @@ class Controller:
             return None
         if self.current_blog is None:
             return None
-        # Blog.list_posts() already sorts newest-first by code
         return self.current_blog.list_posts()
+
+    def update_post(self, code, title, text):
+        if not self.logged_in:
+            return False
+        if self.current_blog is None:
+            return False
+        post = self.current_blog.get_post(code)
+        if post is None:
+            return False
+        # update title + text, bump timestamp
+        return post.update_post(updated_title=title, updated_text=text, updated_time=datetime.now())
+
+    def delete_post(self, code):
+        if not self.logged_in:
+            return False
+        if self.current_blog is None:
+            return False
+        return self.current_blog.remove_post(code)
