@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from unittest import main
 from blogging.controller import Controller
@@ -11,13 +12,34 @@ from blogging.exception.illegal_access_exception import IllegalAccessException
 from blogging.exception.illegal_operation_exception import IllegalOperationException
 from blogging.exception.no_current_blog_exception import NoCurrentBlogException
 
-class ControllerTest(TestCase):
+class IntegrationTest(TestCase):
 
 	def setUp(self):
-		# set autosave to False to ignore testing persistence
+		# set autosave to True to test persistence
 		self.configuration = Configuration()
-		self.configuration.__class__.autosave = False
+		self.configuration.__class__.autosave = True
 		self.controller = Controller()
+
+	# comment the tearDown method to see the file when the test ends.
+	def tearDown(self):
+		blogs_file = self.configuration.__class__.blogs_file
+		records_path = self.configuration.__class__.records_path
+		blogs_file_exists = os.path.exists(blogs_file)
+		if os.path.exists(records_path):
+			filenames = os.listdir(records_path)
+			for filename in filenames:
+				if self.configuration.__class__.records_extension not in filename:
+					continue
+				record_file_path = os.path.join(records_path, filename)
+				if os.path.isfile(record_file_path):
+					os.remove(record_file_path)
+		# removing the blogs file later to avoid concurrency issues
+		if blogs_file_exists:
+			os.remove(blogs_file)
+
+	def reset_persistence(self):
+		self.controller = Controller()
+		self.controller.login("user", "123456")       
 
 	def test_login_logout(self):
 
@@ -67,6 +89,9 @@ class ControllerTest(TestCase):
 		# implement __eq__(self, other) in Blog to compare blogs based on its attributes
 		self.assertEqual(expected_blog_1, actual_blog, "Short Journey blog was created and their data are correct")
 
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# after creating the blog, one should be able to search it
 		actual_blog = self.controller.search_blog(1111114444)
 		self.assertIsNotNone(actual_blog, "blog created and retrieved cannot be null")
@@ -80,6 +105,10 @@ class ControllerTest(TestCase):
 		actual_blog = self.controller.create_blog(1111115555, "Long Journey", "long_journey", "long.journey@gmail.com")
 		self.assertIsNotNone(actual_blog, "second blog created cannot be null")
 		self.assertEqual(expected_blog_2, actual_blog, "second blog, Long Journey, was created and its data are correct")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		actual_blog = self.controller.search_blog(1111115555)
 		self.assertIsNotNone(actual_blog, "blog created and retrieved cannot be null")
 		self.assertEqual(expected_blog_2, actual_blog, "second blog, Long Journey, was created, retrieved and its data are correct")
@@ -88,6 +117,10 @@ class ControllerTest(TestCase):
 		actual_blog = self.controller.create_blog(1111112000, "Long Trip", "long_trip", "long.trip@gmail.com")
 		self.assertIsNotNone(actual_blog, "blog created cannot be null")
 		self.assertEqual(expected_blog_3, actual_blog, "Long Trip blog was created and its data are correct")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		actual_blog = self.controller.search_blog(1111112000)
 		self.assertIsNotNone(actual_blog, "blog created and retrieved cannot be null")
 		self.assertEqual(expected_blog_3, actual_blog, "third blog, Long Trip, was created, retrieved and its data are correct")
@@ -99,6 +132,9 @@ class ControllerTest(TestCase):
 		actual_blog = self.controller.search_blog(1111114444)
 		self.assertIsNotNone(actual_blog, "blog created and retrieved cannot be null, regardless of search order")
 		self.assertEqual(expected_blog_1, actual_blog, "Short Journey blog was created, retrieved and its data are correct regardless of search order")
+
+
+
 
 
 	def test_retrieve_blogs(self):
@@ -121,6 +157,9 @@ class ControllerTest(TestCase):
 		self.controller.create_blog(1111116666, "Short Trip", "short_trip", "short.trip@gmail.com")
 		self.controller.create_blog(1111117777, "Boring Blog", "boring_blog", "boring.blog@gmail.com")
 
+		# after creating some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# retrieve one blog
 		retrieved_list = self.controller.retrieve_blogs("Long Journey")
 		self.assertEqual(1, len(retrieved_list), "retrieved list of blogs has size 1")
@@ -136,6 +175,7 @@ class ControllerTest(TestCase):
 		# retrieve zero blogs
 		retrieved_list = self.controller.retrieve_blogs("Travel")
 		self.assertEqual(0, len(retrieved_list))
+
 
 	def test_update_blog(self):
 		# some blogs that may be updated
@@ -163,9 +203,16 @@ class ControllerTest(TestCase):
 		self.controller.create_blog(1111116666, "Short Trip", "short_trip", "short.trip@gmail.com")
 		self.controller.create_blog(1111117777, "Boring Blog", "boring_blog", "boring.blog@gmail.com")
 
+		# after creating some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# update one blog, but keep the Blog key (id) unchanged
 		self.assertTrue(self.controller.update_blog(1111114444, 1111114444, "Short Travel", "short_travel", "short.travel@gmail.com"), 
 			"update blog data and keep the id unchanged")
+
+		# after updating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		actual_blog = self.controller.search_blog(1111114444)
 		self.assertNotEqual(expected_blog_1, actual_blog, "blog has updated data, cannot be equal to the original data")
 		expected_blog_3a = Blog(1111114444, "Short Travel", "short_travel", "short.travel@gmail.com")
@@ -174,6 +221,10 @@ class ControllerTest(TestCase):
 		# update one blog, and change the Blog key (id) as well
 		self.assertTrue(self.controller.update_blog(1111117777, 1111118888, "Cool Blog", "cool_blog", "cool.blog@gmail.com"), 
 			"update blog data and also change the id")
+
+		# after updating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		actual_blog = self.controller.search_blog(1111118888)
 		self.assertNotEqual(expected_blog_5, actual_blog, "blog has updated data, cannot be equal to the original data")
 		expected_blog_5a = Blog(1111118888, "Cool Blog", "cool_blog", "cool.blog@gmail.com")
@@ -182,6 +233,7 @@ class ControllerTest(TestCase):
 		# update one blog with a conflicting existing id
 		with self.assertRaises(IllegalOperationException, msg="cannot update blog with an ID that is not registered"):
 			self.controller.update_blog(1111114444, 1111112000, "Short Travel", "short_travel", "short.travel@gmail.com")
+
 
 	def test_delete_blog(self):
 		# some blogs that may be deleted
@@ -209,21 +261,37 @@ class ControllerTest(TestCase):
 		self.controller.create_blog(1111116666, "Short Trip", "short_trip", "short.trip@gmail.com")
 		self.controller.create_blog(1111117777, "Boring Blog", "boring_blog", "boring.blog@gmail.com")
 
+		# after creating some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# try to delete a blog with an ID that is not registered in the system
 		with self.assertRaises(IllegalOperationException, msg="cannot delete blog with an ID that is not registered"):
 			self.controller.delete_blog(1111118888)
 
 		# delete one blog at the start of the collection
 		self.assertTrue(self.controller.delete_blog(1111114444), "delete blog from the start of the collection")
+
+		# after deleting a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.assertIsNone(self.controller.search_blog(1111114444), "deleted blog cannot be found in the system")
 
 		# delete one blog at the middle of the collection
 		self.assertTrue(self.controller.delete_blog(1111112000), "delete blog from the middle of the collection")
+
+		# after deleting a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.assertIsNone(self.controller.search_blog(1111112000), "deleted blog cannot be found in the system")
 
 		# delete one blog at the end of the collection
 		self.assertTrue(self.controller.delete_blog(1111117777), "delete blog from the end of the collection")
+
+		# after deleting a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.assertIsNone(self.controller.search_blog(1111117777), "deleted blog cannot be found in the system")
+
 
 	def test_list_blogs(self):
 		# some blogs that may be listed
@@ -247,6 +315,9 @@ class ControllerTest(TestCase):
 		# add one blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
 
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# listing blogs in a singleton list
 		blogs_list = self.controller.list_blogs()
 		self.assertEqual(1, len(blogs_list), "list of blogs has size 1")
@@ -258,6 +329,8 @@ class ControllerTest(TestCase):
 		self.controller.create_blog(1111116666, "Short Trip", "short_trip", "short.trip@gmail.com")
 		self.controller.create_blog(1111117777, "Boring Blog", "boring_blog", "boring.blog@gmail.com")
 
+		# after creating some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
 
 		# listing blogs in a larger list
 		blogs_list = self.controller.list_blogs()
@@ -273,11 +346,15 @@ class ControllerTest(TestCase):
 		self.controller.delete_blog(1111112000)
 		self.controller.delete_blog(1111117777)
 
+		# after deleting some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# listing blogs after deleting some blogs
 		blogs_list = self.controller.list_blogs()
 		self.assertEqual(2, len(blogs_list), "list of blogs has size 2")
 		self.assertEqual(expected_blog_2, blogs_list[0], "blog 2 is the first in the list of blogs")
 		self.assertEqual(expected_blog_4, blogs_list[1], "blog 4 is the second in the list of blogs")
+
 
 	def test_set_get_current_blog(self):
 		# one of these blogs will be set as the current blog
@@ -305,14 +382,15 @@ class ControllerTest(TestCase):
 		self.controller.create_blog(1111116666, "Short Trip", "short_trip", "short.trip@gmail.com")
 		self.controller.create_blog(1111117777, "Boring Blog", "boring_blog", "boring.blog@gmail.com")
 
+		# after creating some blogs, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		# cannot get current blog without setting it first
 		self.assertIsNone(self.controller.get_current_blog(), "cannot get current blog without setting them first")
 
 		# cannot set a non-existent blog to be the current blog
 		with self.assertRaises(IllegalOperationException, msg="cannot set non-existent blog as the current blog"):
 			self.controller.set_current_blog(1111110001)
-		# self.controller.set_current_blog(1111110001)
-		# self.assertIsNone(self.controller.get_current_blog(), "cannot get non-existent blog as current blog")
 
 		# set one blog to be the current blog
 		self.controller.set_current_blog(1111112000)
@@ -340,7 +418,6 @@ class ControllerTest(TestCase):
 		with self.assertRaises(IllegalAccessException, msg="cannot get current blog after logging out"):
 			self.controller.get_current_blog()
 
-
 	def test_create_post(self):
 		# some posts that may be created
 		expected_post_1 = Post(1, "Starting my journey", "Once upon a time\nThere was a kid...")
@@ -364,14 +441,23 @@ class ControllerTest(TestCase):
 
 		# add one blog and make it the current blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.controller.set_current_blog(1111114444)
 
 		# add one post
 		actual_post = self.controller.create_post("Starting my journey", "Once upon a time\nThere was a kid...")
+
 		self.assertIsNotNone(actual_post, "post 1 was created and is valid")
 
 		# implement __eq__(self, other) in Post to compare posts based on their code, title and text
 		self.assertEqual(expected_post_1, actual_post, "post 1 was created and its data are correct")
+
+		# after creating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 
 		# after creating the post, one should be able to search it
 		actual_post = self.controller.search_post(1)
@@ -380,8 +466,13 @@ class ControllerTest(TestCase):
 
 		# add a second post
 		actual_post = self.controller.create_post("Continuing my journey", "Along the way...\nThere were challenges.")
+
 		self.assertIsNotNone(actual_post, "post 2 was created and is valid")
 		self.assertEqual(expected_post_2, actual_post, "post 2 was created and its data are correct")
+
+		# after creating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 
 		# after creating the post, one should be able to search it
 		actual_post = self.controller.search_post(2)
@@ -390,8 +481,13 @@ class ControllerTest(TestCase):
 
 		# add a third post
 		actual_post = self.controller.create_post("Finishing my journey", "And that was it.\nEnd of story.")
+
 		self.assertIsNotNone(actual_post, "post 3 was created and is valid")
 		self.assertEqual(expected_post_3, actual_post, "post 3 was created and its data are correct")
+
+		# after creating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 
 		# after creating the post, one should be able to search it
 		actual_post = self.controller.search_post(3)
@@ -405,6 +501,7 @@ class ControllerTest(TestCase):
 		actual_post = self.controller.search_post(1)
 		self.assertIsNotNone(actual_post, "post created and retrieved cannot be null regardless of search order")
 		self.assertEqual(expected_post_1, actual_post, "post 1 was created, retrieved and its data are correct regardless of search order")
+
 
 	def test_retrieve_posts(self):
 		# some posts that may be retrieved
@@ -427,6 +524,10 @@ class ControllerTest(TestCase):
 
 		# add one blog and make it the current blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.controller.set_current_blog(1111114444)
 
 		# add some posts
@@ -435,6 +536,10 @@ class ControllerTest(TestCase):
 		self.controller.create_post("Continuing my journey", "Along the way...\nThere were challenges.")
 		self.controller.create_post("Fourth step", "When less expected,\nAll worked fine.")
 		self.controller.create_post("Finishing my journey", "And that was it.\nEnd of story.")
+
+		# after creating some posts, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 
 		# retrieve one post
 		retrieved_list = self.controller.retrieve_posts("think")
@@ -452,6 +557,7 @@ class ControllerTest(TestCase):
 		# retrieve zero posts
 		retrieved_list = self.controller.retrieve_posts("travel")
 		self.assertEqual(0, len(retrieved_list))
+
 
 	def test_update_post(self):
 		# some posts that may be updated
@@ -474,6 +580,10 @@ class ControllerTest(TestCase):
 
 		# add one blog and make it the current blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.controller.set_current_blog(1111114444)
 
 		# try to update a post when there are no posts taken for that blog in the system
@@ -487,9 +597,18 @@ class ControllerTest(TestCase):
 		self.controller.create_post("Fourth step", "When less expected,\nAll worked fine.")
 		self.controller.create_post("Finishing my journey", "And that was it.\nEnd of story.")
 
+		# after creating some posts, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		# update one existing post
 		self.assertTrue(self.controller.update_post(3, "Continuing the journey", "Along the way...\nThere were new challenges."), 
 			"update blog's post")
+
+		# after updating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		actual_post = self.controller.search_post(3)
 		self.assertNotEqual(expected_post_3, actual_post, "post has updated data, cannot be equal to the original data")
 		expected_post_3a = Post(3, "Continuing the journey", "Along the way...\nThere were new challenges.")
@@ -502,10 +621,16 @@ class ControllerTest(TestCase):
 		# update another existing post
 		self.assertTrue(self.controller.update_post(5, "Finishing my travel", "And that was it.\nEnd of travel."), 
 			"update blog's post")
+
+		# after updating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		actual_post = self.controller.search_post(5)
 		self.assertNotEqual(expected_post_5, actual_post, "post has updated data, cannot be equal to the original data")
 		expected_post_5a = Post(5, "Finishing my travel", "And that was it.\nEnd of travel.")
 		self.assertEqual(expected_post_5a, actual_post, "blog was updated, their data has to be updated and correct")
+
 
 	def test_delete_post(self):
 		# some posts that may be deleted
@@ -528,6 +653,10 @@ class ControllerTest(TestCase):
 
 		# add one blog and make it the current blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.controller.set_current_blog(1111114444)
 
 		# try to delete a post when there are no posts taken for that blog in the system
@@ -540,19 +669,44 @@ class ControllerTest(TestCase):
 		self.controller.create_post("Fourth step", "When less expected,\nAll worked fine.")
 		self.controller.create_post("Finishing my journey", "And that was it.\nEnd of story.")
 
+		# after creating some posts, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		# delete one existing post
 		self.assertTrue(self.controller.delete_post(3), "delete blog's post")
+
+		# after deleting a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 		self.assertIsNone(self.controller.search_post(3))
 
 		# delete the remaining existing posts, regardless of deleting order
+
 		self.assertTrue(self.controller.delete_post(1), "delete blog's post")
+		# after deleting a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 		self.assertIsNone(self.controller.search_post(1))
+
 		self.assertTrue(self.controller.delete_post(5), "delete blog's post")
+		# after deleting a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 		self.assertIsNone(self.controller.search_post(5))
+
 		self.assertTrue(self.controller.delete_post(4), "delete blog's post")
+		# after deleting a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 		self.assertIsNone(self.controller.search_post(4))
+
 		self.assertTrue(self.controller.delete_post(2), "delete blog's post")
+		# after deleting a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 		self.assertIsNone(self.controller.search_post(2))
+
 
 	def test_list_posts(self):
 		# some posts that may be listed
@@ -575,6 +729,10 @@ class ControllerTest(TestCase):
 
 		# add one blog and make it the current blog
 		self.controller.create_blog(1111114444, "Short Journey", "short_journey", "short.journey@gmail.com")
+
+		# after creating a blog, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+
 		self.controller.set_current_blog(1111114444)
 
 		# listing posts when the current blog has no posts
@@ -583,6 +741,11 @@ class ControllerTest(TestCase):
 
 		# listing posts in a singleton list
 		actual_post = self.controller.create_post("Starting my journey", "Once upon a time\nThere was a kid...")
+
+		# after creating a post, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		posts_list = self.controller.list_posts()
 		self.assertEqual(1, len(posts_list), "list of posts for blog has size 1")
 		self.assertEqual(expected_post_1, posts_list[0], "post 1 is the listed post.")
@@ -592,6 +755,10 @@ class ControllerTest(TestCase):
 		self.controller.create_post("Continuing my journey", "Along the way...\nThere were challenges.")
 		self.controller.create_post("Fourth step", "When less expected,\nAll worked fine.")
 		self.controller.create_post("Finishing my journey", "And that was it.\nEnd of story.")
+
+		# after creating some posts, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
 
 		# listing posts in a larger list
 		posts_list = self.controller.list_posts()
@@ -607,6 +774,10 @@ class ControllerTest(TestCase):
 		self.controller.delete_post(1)
 		self.controller.delete_post(5)
 
+		# after deleting some posts, reset persistence to ensure that persistence is working well 
+		self.reset_persistence()
+		self.controller.set_current_blog(1111114444)
+
 		# listing posts from a blog with deleted posts
 		posts_list = self.controller.list_posts()
 		self.assertEqual(2, len(posts_list), "list of posts has size 2")
@@ -615,4 +786,4 @@ class ControllerTest(TestCase):
 
 
 if __name__ == '__main__':
-	unittest.main()
+	main()
