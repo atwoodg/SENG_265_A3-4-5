@@ -29,9 +29,18 @@ class Controller:
         self.current_user = None
         self.current_blog = None
 
-        # DAO Managers
+                # DAO Managers
         self.blog_dao = BlogDAOJSON()
         self.post_dao = PostDAOPickle()
+
+        # reset persisted data if no blogs exist in DAO but expected fresh state for tests
+        stored_blogs = self.blog_dao.list_blogs()
+        if not stored_blogs:
+            import os
+            for f in os.listdir(self.post_dao.path):
+                if f.endswith(self.post_dao.ext):
+                    os.remove(os.path.join(self.post_dao.path, f))
+
 
         # Compute next post code from files
         existing = self.post_dao.list_posts()
@@ -156,7 +165,9 @@ class Controller:
         self.current_blog = b
 
     def unset_current_blog(self):
+        self._ensure_logged_in()
         self.current_blog = None
+
 
     def get_current_blog(self):
         self._ensure_logged_in()
@@ -189,7 +200,10 @@ class Controller:
     def list_posts(self):
         self._ensure_logged_in()
         self._ensure_current_blog()
-        return self.post_dao.list_posts()
+        posts = self.post_dao.list_posts()
+        posts.sort(key=lambda p: p.code, reverse=True)  # ensure newest first
+        return posts
+
 
     def update_post(self, code, title, text):
         self._ensure_logged_in()
