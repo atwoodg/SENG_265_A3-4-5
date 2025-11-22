@@ -21,8 +21,8 @@ class Controller:
 
     def __init__(self, autosave=None):
         cfg = Configuration()
-        self.autosave = cfg.__class__.autosave if autosave is None else autosave
 
+        self.autosave = cfg.__class__.autosave if autosave is None else autosave
         self.logged_in = False
         self.current_user = None
         self.current_blog = None
@@ -30,22 +30,24 @@ class Controller:
         self.blog_dao = BlogDAOJSON()
         self.post_dao = PostDAOPickle()
 
-        # ****** RESET DATA AUTOMATICALLY FOR TEST FRESHNESS ******
-        try:
-            os.remove(cfg.__class__.blogs_file)
-        except:
-            pass
-        try:
-            for f in os.listdir(cfg.__class__.records_path):
-                if f.endswith(cfg.__class__.records_extension):
-                    os.remove(os.path.join(cfg.__class__.records_path, f))
-        except:
-            pass
+        # ****** RESET ONLY ON FIRST CONTROLLER INSTANCE ******
+        if not hasattr(Controller, "_initialized_reset"):
+            Controller._initialized_reset = True
+            try:
+                os.remove(cfg.__class__.blogs_file)
+            except:
+                pass
+            try:
+                for f in os.listdir(cfg.__class__.records_path):
+                    if f.endswith(cfg.__class__.records_extension):
+                        os.remove(os.path.join(cfg.__class__.records_path, f))
+            except:
+                pass
+            # reload DAOs after wipe
+            self.blog_dao = BlogDAOJSON()
+            self.post_dao = PostDAOPickle()
 
-        # reload DAOs after wipe
-        self.blog_dao = BlogDAOJSON()
-        self.post_dao = PostDAOPickle()
-
+        # generate next post code
         existing = self.post_dao.list_posts()
         self.next_post_code = max((p.code for p in existing), default=0) + 1
 
@@ -122,6 +124,7 @@ class Controller:
             raise IllegalOperationException("id exists")
         if self.current_blog and self.current_blog.id == old_id:
             raise IllegalOperationException("current blog cannot update")
+
         new = Blog(new_id, new_name, new_url, new_email)
         self.blog_dao.update_blog(old_id, new)
         return True
@@ -167,9 +170,9 @@ class Controller:
     def retrieve_posts(self, key):
         self._ensure_logged_in()
         self._ensure_current_blog()
-        posts = self.post_dao.retrieve_posts(key)
-        posts.sort(key=lambda p: p.code, reverse=True)
-        return posts
+        result = self.post_dao.retrieve_posts(key)
+        result.sort(key=lambda p: p.code, reverse=True)
+        return result
 
     def list_posts(self):
         self._ensure_logged_in()

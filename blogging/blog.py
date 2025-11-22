@@ -5,7 +5,7 @@ class Blog:
         self.name = name
         self.url = url
         self.email = email
-        self.posts = []  # temporary list for BlogTest compatibility
+        self.posts = []
 
     def add_post(self, post):
         self.posts.append(post)
@@ -25,9 +25,9 @@ class Blog:
         self.posts = [p for p in self.posts if p.code != code]
         return len(self.posts) != before
 
-    def retrieve_post(self, keyword):
-        kw = keyword.lower()
-        return [p for p in self.posts if kw in p.title.lower() or kw in p.text.lower()]
+    def retrieve_post(self, key):
+        key = key.lower()
+        return [p for p in self.posts if key in p.title.lower() or key in p.text.lower()]
 
     def __str__(self):
         return f"Blog ID: {self.id}\nName: {self.name}\nURL: {self.url}\nEmail: {self.email}"
