@@ -29,11 +29,11 @@ class Controller:
         self.current_user = None
         self.current_blog = None
 
-        # DAO managers
+        # DAO Managers
         self.blog_dao = BlogDAOJSON()
         self.post_dao = PostDAOPickle()
 
-        # set next post code based on files already stored
+        # Compute next post code from files
         existing = self.post_dao.list_posts()
         if existing:
             self.next_post_code = max(p.code for p in existing) + 1
@@ -42,42 +42,39 @@ class Controller:
 
         self.users = self._load_users(cfg.__class__.users_file)
 
-    # ---------- helpers ----------
-    def _hash_password(self, plain_password: str) -> str:
+    # ---------- helper methods ----------
+
+    def _hash_password(self, plain_password):
         return hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
 
-    def _load_users(self, users_file):
+    def _load_users(self, file):
         users = {}
         try:
-            with open(users_file, "r") as f:
+            with open(file, "r") as f:
                 for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    parts = line.split(",")
-                    if len(parts) != 2:
-                        continue
-                    username = parts[0].strip()
-                    digest = parts[1].strip()
-                    users[username] = digest
+                    u, h = line.strip().split(",")
+                    users[u] = h
         except FileNotFoundError:
             pass
         return users
 
     def _ensure_logged_in(self):
         if not self.logged_in:
-            raise IllegalAccessException("must be logged in")
+            raise IllegalAccessException("login required")
 
     def _ensure_current_blog(self):
         if self.current_blog is None:
-            raise NoCurrentBlogException("no current blog selected")
+            raise NoCurrentBlogException("no current blog")
 
     # ---------- login/logout ----------
+
     def login(self, username, password):
         if self.logged_in:
             raise DuplicateLoginException("already logged in")
+
         if username not in self.users:
-            raise InvalidLoginException("bad user")
+            raise InvalidLoginException("bad username")
+
         if self._hash_password(password) != self.users[username]:
             raise InvalidLoginException("bad password")
 
@@ -87,21 +84,24 @@ class Controller:
 
     def logout(self):
         if not self.logged_in:
-            raise InvalidLogoutException("not logged in")
+            raise InvalidLogoutException("no user logged in")
         self.logged_in = False
         self.current_user = None
         self.current_blog = None
         return True
 
-    # ---------- blog ops ----------
+    # ---------- BLOG OPERATIONS ----------
+
     def create_blog(self, id, name, url, email):
         self._ensure_logged_in()
-
-        if self.blog_dao.search_blog(id) is not None:
-            raise IllegalOperationException("duplicate id")
+        if self.blog_dao.search_blog(id):
+            raise IllegalOperationException("duplicate blog id")
 
         b = Blog(id, name, url, email)
         self.blog_dao.create_blog(b)
+
+        if self.autosave:
+            pass
         return b
 
     def search_blog(self, id):
@@ -122,13 +122,17 @@ class Controller:
             raise IllegalOperationException("cannot update active blog")
 
         if self.blog_dao.search_blog(old_id) is None:
-            raise IllegalOperationException("no blog to update")
+            raise IllegalOperationException("blog does not exist")
 
         if new_id != old_id and self.blog_dao.search_blog(new_id):
-            raise IllegalOperationException("id already exists")
+            raise IllegalOperationException("new id in use")
 
-        newBlog = Blog(new_id, new_name, new_url, new_email)
-        return self.blog_dao.update_blog(old_id, newBlog)
+        updated = Blog(new_id, new_name, new_url, new_email)
+        self.blog_dao.update_blog(old_id, updated)
+
+        if self.autosave:
+            pass
+        return True
 
     def delete_blog(self, id):
         self._ensure_logged_in()
@@ -136,16 +140,20 @@ class Controller:
             raise IllegalOperationException("cannot delete active blog")
 
         if not self.blog_dao.delete_blog(id):
-            raise IllegalOperationException("cannot delete blog")
+            raise IllegalOperationException("delete failed")
+
+        if self.autosave:
+            pass
         return True
 
-    # ---------- current blog ----------
+    # ---------- CURRENT BLOG ----------
+
     def set_current_blog(self, id):
         self._ensure_logged_in()
-        result = self.blog_dao.search_blog(id)
-        if result is None:
-            raise IllegalOperationException("blog missing")
-        self.current_blog = result
+        b = self.blog_dao.search_blog(id)
+        if b is None:
+            raise IllegalOperationException("blog not found")
+        self.current_blog = b
 
     def unset_current_blog(self):
         self.current_blog = None
@@ -154,14 +162,18 @@ class Controller:
         self._ensure_logged_in()
         return self.current_blog
 
-    # ---------- posts ----------
+    # ---------- POSTS ----------
+
     def create_post(self, title, text):
         self._ensure_logged_in()
         self._ensure_current_blog()
 
-        p = Post(self.next_post_code, title, text, datetime.now(), datetime.now())
+        p = Post(self.next_post_code, title, text)
         self.post_dao.create_post(p)
         self.next_post_code += 1
+
+        if self.autosave:
+            pass
         return p
 
     def search_post(self, code):
@@ -182,9 +194,15 @@ class Controller:
     def update_post(self, code, title, text):
         self._ensure_logged_in()
         self._ensure_current_blog()
-        return self.post_dao.update_post(code, title, text)
+        ok = self.post_dao.update_post(code, title, text)
+        if self.autosave:
+            pass
+        return ok
 
     def delete_post(self, code):
         self._ensure_logged_in()
         self._ensure_current_blog()
-        return self.post_dao.delete_post(code)
+        ok = self.post_dao.delete_post(code)
+        if self.autosave:
+            pass
+        return ok
