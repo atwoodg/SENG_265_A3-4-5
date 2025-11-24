@@ -6,7 +6,6 @@ from blogging.post import Post
 from blogging.configuration import Configuration
 
 from blogging.dao.blog_dao_json import BlogDAOJSON
-from blogging.dao.post_dao_pickle import PostDAOPickle
 
 from blogging.exception.invalid_login_exception import InvalidLoginException
 from blogging.exception.duplicate_login_exception import DuplicateLoginException
@@ -30,9 +29,6 @@ class Controller:
 
         # DAOs know whether persistence is enabled
         self.blog_dao = BlogDAOJSON(self.autosave)
-
-        #code counter for controller tests
-        self.next_post_code = 1
 
         # load users (username, sha256(password)) from config file
         self.users = self._load_users(cfg.__class__.users_file)
@@ -180,10 +176,7 @@ class Controller:
         self._ensure_logged_in()
         self._ensure_current_blog()
 
-        code = self.next_post_code
-        self.next_post_code += 1
-
-        post = Post(code, title, text, datetime.now(), datetime.now())
+        post = Post(0, title, text, datetime.now(), datetime.now())
         # controller_test + integration_test only ever use one blog for posts,
         # so the DAO does not need the blog id here.
         self.current_blog.add_post(post)
@@ -211,12 +204,8 @@ class Controller:
         if len(self.current_blog.list_posts()) == 0:
             return False
 
-        post = self.current_blog.get_post(code)
-        if post is None:
-            return False
-
-        post.update_post(new_title, new_text)
-        return True
+        # Delegate the actual update (and persistence) to the DAO
+        return self.current_blog.post_dao.update_post(code, new_title, new_text)
 
     def delete_post(self, code):
         self._ensure_logged_in()
