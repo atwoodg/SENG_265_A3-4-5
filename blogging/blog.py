@@ -7,6 +7,7 @@ class Blog:
         self.email = email
         self.posts = []
 
+
     def add_post(self, post):
         self.posts.append(post)
         return True
