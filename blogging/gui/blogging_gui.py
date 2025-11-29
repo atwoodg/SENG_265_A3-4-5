@@ -1,407 +1,225 @@
-# blogging/gui/blogging_gui.py
-# Commit 4: Add Post management (create, update, delete, list, retrieve)
-# super messy but works fine
-
-from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QApplication,
-    QVBoxLayout, QHBoxLayout, QGroupBox,
-    QLabel, QLineEdit, QPushButton, QTextEdit
-)
-from PyQt6.QtCore import Qt
-
+import tkinter as tk
+from tkinter import messagebox, scrolledtext
 from blogging.controller import Controller
 from blogging.exception.invalid_login_exception import InvalidLoginException
-from blogging.exception.duplicate_login_exception import DuplicateLoginException
 from blogging.exception.invalid_logout_exception import InvalidLogoutException
-from blogging.exception.illegal_operation_exception import IllegalOperationException
 from blogging.exception.no_current_blog_exception import NoCurrentBlogException
+from blogging.exception.illegal_operation_exception import IllegalOperationException
 from blogging.exception.illegal_access_exception import IllegalAccessException
 
-
-class BloggingGUI(QMainWindow):
+class BloggingGUI:
     def __init__(self):
-        super().__init__()
         self.controller = Controller()
+        self.win = tk.Tk()
+        self.win.title("Blogging System")
+        self.win.geometry("820x620")
+        self.win.configure(bg="#f4f4f4")
 
-        self.setWindowTitle("SENG265 Blogging System")
-        self.resize(950, 850)
+        # create main containers
+        self.top_frame = tk.Frame(self.win, bg="#f4f4f4")
+        self.top_frame.pack(fill="x", pady=10)
 
-        self._build_ui()
+        self.middle_frame = tk.Frame(self.win, bg="#f4f4f4")
+        self.middle_frame.pack(fill="both", expand=True)
 
-    def _build_ui(self):
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
+        self.bottom_frame = tk.Frame(self.win, bg="#f4f4f4")
+        self.bottom_frame.pack(fill="x", pady=10)
 
-        ################################################################
-        # LOGIN BOX
-        ################################################################
-        login_box = QGroupBox("Login")
-        login_layout = QHBoxLayout(login_box)
+        # status label
+        self.status_label = tk.Label(self.bottom_frame, text="Not logged in", fg="red", bg="#f4f4f4")
+        self.status_label.pack()
 
-        self.user_edit = QLineEdit()
-        self.user_edit.setPlaceholderText("username")
+        # call UI setup
+        self.make_login_box()
+        self.make_blog_panel()
 
-        self.pass_edit = QLineEdit()
-        self.pass_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.pass_edit.setPlaceholderText("password")
+    # ---------------- LOGIN PANEL ----------------
+    def make_login_box(self):
+        login_box = tk.LabelFrame(self.top_frame, text="Login", padx=10, pady=10, bg="#f4f4f4")
+        login_box.pack(pady=5)
 
-        self.login_btn = QPushButton("Login")
-        self.logout_btn = QPushButton("Logout")
-        self.logout_btn.setEnabled(False)
+        tk.Label(login_box, text="Username:", bg="#f4f4f4").grid(row=0, column=0)
+        tk.Label(login_box, text="Password:", bg="#f4f4f4").grid(row=1, column=0)
 
-        self.login_btn.clicked.connect(self.handle_login)
-        self.logout_btn.clicked.connect(self.handle_logout)
+        self.user_entry = tk.Entry(login_box, width=20)
+        self.pass_entry = tk.Entry(login_box, width=20, show="*")
+        self.user_entry.grid(row=0, column=1, padx=5)
+        self.pass_entry.grid(row=1, column=1, padx=5)
 
-        login_layout.addWidget(QLabel("User:"))
-        login_layout.addWidget(self.user_edit)
-        login_layout.addWidget(QLabel("Pass:"))
-        login_layout.addWidget(self.pass_edit)
-        login_layout.addWidget(self.login_btn)
-        login_layout.addWidget(self.logout_btn)
+        tk.Button(login_box, text="Login", command=self.do_login, width=10).grid(row=0, column=2, padx=5)
+        tk.Button(login_box, text="Logout", command=self.do_logout, width=10).grid(row=1, column=2, padx=5)
 
-        layout.addWidget(login_box)
+    # ---------------- BLOG PANEL ----------------
+    def make_blog_panel(self):
+        left_frame = tk.LabelFrame(self.middle_frame, text="Blogs", bg="#f4f4f4", padx=10, pady=10)
+        left_frame.pack(side="left", fill="y", padx=10, pady=5)
 
-        ################################################################
-        # BLOG CRUD PANEL
-        ################################################################
-        crud_box = QGroupBox("Blog Management")
-        crud = QVBoxLayout(crud_box)
+        right_frame = tk.LabelFrame(self.middle_frame, text="Posts", bg="#f4f4f4", padx=10, pady=10)
+        right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
 
-        row = QHBoxLayout()
-        self.field_id = QLineEdit()
-        self.field_id.setPlaceholderText("id")
-        self.field_title = QLineEdit()
-        self.field_title.setPlaceholderText("title")
-        self.field_name = QLineEdit()
-        self.field_name.setPlaceholderText("name")
-        self.field_email = QLineEdit()
-        self.field_email.setPlaceholderText("email")
+        # BLOG LIST
+        tk.Label(left_frame, text="Blog List:", bg="#f4f4f4").pack()
+        self.blog_list = tk.Listbox(left_frame, width=30, height=20)
+        self.blog_list.pack(pady=5)
 
-        row.addWidget(self.field_id)
-        row.addWidget(self.field_title)
-        row.addWidget(self.field_name)
-        row.addWidget(self.field_email)
-        crud.addLayout(row)
+        tk.Button(left_frame, text="Refresh", command=self.load_blogs).pack(pady=2)
+        tk.Button(left_frame, text="Select Blog", command=self.select_blog).pack(pady=2)
 
-        ops = QHBoxLayout()
-        self.btn_create = QPushButton("Create")
-        self.btn_update = QPushButton("Update")
-        self.btn_delete = QPushButton("Delete")
-        self.btn_set = QPushButton("Set Current")
-        self.btn_unset = QPushButton("Unset Current")
+        # create blog
+        tk.Label(left_frame, text="Create Blog:", bg="#f4f4f4").pack(pady=(10, 2))
+        self.cb_id = tk.Entry(left_frame, width=20)
+        self.cb_title = tk.Entry(left_frame, width=20)
+        self.cb_name = tk.Entry(left_frame, width=20)
+        self.cb_email = tk.Entry(left_frame, width=20)
+        tk.Label(left_frame, text="ID:", bg="#f4f4f4").pack()
+        self.cb_id.pack()
+        tk.Label(left_frame, text="Title:", bg="#f4f4f4").pack()
+        self.cb_title.pack()
+        tk.Label(left_frame, text="User:", bg="#f4f4f4").pack()
+        self.cb_name.pack()
+        tk.Label(left_frame, text="Email:", bg="#f4f4f4").pack()
+        self.cb_email.pack()
 
-        self.btn_create.clicked.connect(self.handle_create_blog)
-        self.btn_update.clicked.connect(self.handle_update_blog)
-        self.btn_delete.clicked.connect(self.handle_delete_blog)
-        self.btn_set.clicked.connect(self.handle_set_current)
-        self.btn_unset.clicked.connect(self.handle_unset_current)
+        tk.Button(left_frame, text="Create", command=self.create_blog).pack(pady=4)
+        tk.Button(left_frame, text="Delete", command=self.delete_blog).pack()
 
-        ops.addWidget(self.btn_create)
-        ops.addWidget(self.btn_update)
-        ops.addWidget(self.btn_delete)
-        ops.addWidget(self.btn_set)
-        ops.addWidget(self.btn_unset)
+        # ---------------- POSTS ----------------
+        tk.Label(right_frame, text="Posts for Current Blog:", bg="#f4f4f4").pack()
+        self.post_list = tk.Listbox(right_frame, width=50, height=12)
+        self.post_list.pack(pady=5)
 
-        crud.addLayout(ops)
-        layout.addWidget(crud_box)
+        # post creation area
+        tk.Label(right_frame, text="Create Post:", bg="#f4f4f4").pack()
+        self.post_title = tk.Entry(right_frame, width=40)
+        self.post_title.pack(pady=2)
+        self.post_text = scrolledtext.ScrolledText(right_frame, width=40, height=6)
+        self.post_text.pack(pady=2)
 
-        ################################################################
-        # BLOG LIST / RETRIEVE
-        ################################################################
-        blogs_box = QGroupBox("Blogs")
-        blogs_layout = QHBoxLayout(blogs_box)
+        tk.Button(right_frame, text="Add Post", command=self.add_post).pack(pady=3)
+        tk.Button(right_frame, text="Delete Selected Post", command=self.delete_post).pack(pady=3)
 
-        self.blog_id_input = QLineEdit()
-        self.blog_id_input.setPlaceholderText("enter blog id")
-
-        self.btn_list_blogs = QPushButton("List Blogs")
-        self.btn_retrieve_blog = QPushButton("Retrieve Blog")
-
-        self.btn_list_blogs.clicked.connect(self.handle_list_blogs)
-        self.btn_retrieve_blog.clicked.connect(self.handle_retrieve_blog)
-
-        blogs_layout.addWidget(self.blog_id_input)
-        blogs_layout.addWidget(self.btn_list_blogs)
-        blogs_layout.addWidget(self.btn_retrieve_blog)
-
-        layout.addWidget(blogs_box)
-
-        ################################################################
-        # POST MANAGEMENT PANEL
-        ################################################################
-        post_box = QGroupBox("Post Management")
-        post_layout = QVBoxLayout(post_box)
-
-        # row 1 - fields
-        prow = QHBoxLayout()
-        self.post_code = QLineEdit()
-        self.post_code.setPlaceholderText("code")
-        self.post_title = QLineEdit()
-        self.post_title.setPlaceholderText("title")
-        self.post_text = QLineEdit()
-        self.post_text.setPlaceholderText("text")
-
-        prow.addWidget(self.post_code)
-        prow.addWidget(self.post_title)
-        prow.addWidget(self.post_text)
-        post_layout.addLayout(prow)
-
-        # row 2 - buttons
-        pop = QHBoxLayout()
-        self.btn_pcreate = QPushButton("Create Post")
-        self.btn_pupdate = QPushButton("Update Post")
-        self.btn_pdelete = QPushButton("Delete Post")
-        self.btn_plist   = QPushButton("List Posts")
-        self.btn_psearch = QPushButton("Search Posts")
-
-        self.btn_pcreate.clicked.connect(self.handle_create_post)
-        self.btn_pupdate.clicked.connect(self.handle_update_post)
-        self.btn_pdelete.clicked.connect(self.handle_delete_post)
-        self.btn_plist.clicked.connect(self.handle_list_posts)
-        self.btn_psearch.clicked.connect(self.handle_search_posts)
-
-        pop.addWidget(self.btn_pcreate)
-        pop.addWidget(self.btn_pupdate)
-        pop.addWidget(self.btn_pdelete)
-        pop.addWidget(self.btn_plist)
-        pop.addWidget(self.btn_psearch)
-
-        post_layout.addLayout(pop)
-        layout.addWidget(post_box)
-
-        ################################################################
-        # OUTPUT
-        ################################################################
-        self.output = QTextEdit()
-        self.output.setReadOnly(True)
-        layout.addWidget(self.output)
-
-        self.status_label = QLabel("Not logged in.")
-        layout.addWidget(self.status_label)
-
-    ################################################################
-    # LOGIN
-    ################################################################
-    def handle_login(self):
-        u = self.user_edit.text().strip()
-        p = self.pass_edit.text().strip()
+    # ------------------- LOGIN LOGIC --------------------
+    def do_login(self):
+        u = self.user_entry.get().strip()
+        p = self.pass_entry.get().strip()
         try:
-            self.controller.login(u, p)
-            self.status_label.setText(f"Logged in as {u}")
-            self.login_btn.setEnabled(False)
-            self.logout_btn.setEnabled(True)
-        except DuplicateLoginException:
-            self.status_label.setText("Already logged in")
+            ok = self.controller.login(u, p)
+            if ok:
+                self.status_label.config(text=f"Logged in as {u}", fg="green")
         except InvalidLoginException:
-            self.status_label.setText("Invalid login")
+            messagebox.showerror("Login", "Invalid username or password.")
+        except IllegalOperationException:
+            messagebox.showerror("Login", "Login failed (operation issue).")
 
-    def handle_logout(self):
+    def do_logout(self):
         try:
             self.controller.logout()
-            self.status_label.setText("Logged out.")
-            self.login_btn.setEnabled(True)
-            self.logout_btn.setEnabled(False)
+            self.status_label.config(text="Not logged in", fg="red")
         except InvalidLogoutException:
-            self.status_label.setText("Not logged in.")
+            messagebox.showerror("Logout", "Cannot logout (not logged in).")
 
-    ################################################################
-    # BLOG HELPERS
-    ################################################################
-
-    def _read_blog_fields(self):
-        try:
-            bid = int(self.field_id.text().strip())
-        except:
-            return None
-        title = self.field_title.text().strip()
-        name = self.field_name.text().strip()
-        email = self.field_email.text().strip()
-        return (bid, title, name, email)
-
-    def handle_create_blog(self):
-        data = self._read_blog_fields()
-        if not data:
-            self.output.setText("Invalid input")
-            return
-
-        bid, title, name, email = data
-        try:
-            b = self.controller.create_blog(bid, title, name, email)
-            self.output.setText(f"Created blog:\n{b}")
-        except IllegalOperationException:
-            self.output.setText("Duplicate blog ID")
-
-    def handle_update_blog(self):
-        data = self._read_blog_fields()
-        if not data:
-            self.output.setText("Invalid input")
-            return
-
-        bid, title, name, email = data
-        try:
-            ok = self.controller.update_blog(bid, bid, title, name, email)
-            if ok:
-                self.output.setText("Updated blog")
-            else:
-                self.output.setText("Update failed")
-        except IllegalOperationException:
-            self.output.setText("Blog not found")
-
-    def handle_delete_blog(self):
-        try:
-            bid = int(self.field_id.text().strip())
-        except:
-            self.output.setText("Invalid id")
-            return
-
-        try:
-            ok = self.controller.delete_blog(bid)
-            if ok:
-                self.output.setText("Deleted blog")
-            else:
-                self.output.setText("Delete failed")
-        except IllegalOperationException:
-            self.output.setText("Cannot delete current blog")
-
-    def handle_set_current(self):
-        try:
-            bid = int(self.field_id.text().strip())
-        except:
-            self.output.setText("Invalid id")
-            return
-
-        try:
-            ok = self.controller.set_current_blog(bid)
-            if ok:
-                self.output.setText(f"Set current blog to {bid}")
-        except IllegalOperationException:
-            self.output.setText("Blog not found")
-
-    def handle_unset_current(self):
-        try:
-            ok = self.controller.unset_current_blog()
-            if ok:
-                self.output.setText("Unset current blog")
-        except IllegalAccessException:
-            self.output.setText("Not logged in")
-        except NoCurrentBlogException:
-            self.output.setText("No current blog selected")
-
-    ################################################################
-    # BLOG RETRIEVE
-    ################################################################
-    def handle_list_blogs(self):
+    # ------------------- BLOG LOGIC ---------------------
+    def load_blogs(self):
+        self.blog_list.delete(0, tk.END)
         try:
             blogs = self.controller.list_blogs()
-            out = ""
             for b in blogs:
-                out += f"{b.id} | {b.title} | {b.name} | {b.email}\n"
-            self.output.setText(out)
+                self.blog_list.insert(tk.END, f"{b.id} | {b.title}")
+        except IllegalAccessException:
+            messagebox.showerror("Error", "You must log in first.")
+        except Exception:
+            messagebox.showerror("Error", "Failed to load blogs.")
+
+    def select_blog(self):
+        try:
+            idx = self.blog_list.curselection()
+            if not idx:
+                messagebox.showwarning("Blog", "Select a blog first.")
+                return
+            row = self.blog_list.get(idx[0])
+            bid = int(row.split("|")[0].strip())
+            self.controller.set_current_blog(bid)
+            self.load_posts()
         except IllegalOperationException:
-            self.output.setText("No blogs stored")
+            messagebox.showerror("Blog", "Invalid blog selection.")
+        except Exception:
+            messagebox.showerror("Blog", "Could not select blog.")
 
-    def handle_retrieve_blog(self):
-        bid_text = self.blog_id_input.text().strip()
-        if not bid_text.isdigit():
-            self.output.setText("Invalid blog id")
-            return
-
-        bid = int(bid_text)
+    def create_blog(self):
         try:
-            blog = self.controller.search_blog(bid)
-            if blog is None:
-                self.output.setText("Blog not found")
-            else:
-                self.output.setText(str(blog))
+            bid = int(self.cb_id.get().strip())
+            t = self.cb_title.get().strip()
+            n = self.cb_name.get().strip()
+            e = self.cb_email.get().strip()
+            self.controller.create_blog(bid, t, n, e)
+            self.load_blogs()
+        except Exception as ex:
+            messagebox.showerror("Create Blog", f"Error: {ex}")
+
+    def delete_blog(self):
+        try:
+            idx = self.blog_list.curselection()
+            if not idx:
+                messagebox.showwarning("Blog", "Select a blog first.")
+                return
+            row = self.blog_list.get(idx[0])
+            bid = int(row.split("|")[0].strip())
+            self.controller.delete_blog(bid)
+            self.load_blogs()
+            self.post_list.delete(0, tk.END)
         except IllegalOperationException:
-            self.output.setText("Error retrieving blog")
+            messagebox.showerror("Delete Blog", "Cannot delete this blog.")
+        except IllegalAccessException:
+            messagebox.showerror("Delete Blog", "You must log in first.")
+        except Exception as ex:
+            messagebox.showerror("Delete Blog", f"Error: {ex}")
 
-    ################################################################
-    # POST CRUD + LIST + RETRIEVE
-    ################################################################
-    def _read_post_fields(self):
-        try:
-            code = int(self.post_code.text().strip())
-        except:
-            return None
-        title = self.post_title.text().strip()
-        text = self.post_text.text().strip()
-        return (code, title, text)
-
-    def handle_create_post(self):
-        vals = self._read_post_fields()
-        if not vals:
-            self.output.setText("Invalid post input")
-            return
-
-        code, title, text = vals
-        try:
-            p = self.controller.create_post(code, title, text)
-            self.output.setText(f"Created post:\n{p}")
-        except NoCurrentBlogException:
-            self.output.setText("No current blog selected")
-        except IllegalOperationException:
-            self.output.setText("Duplicate post code")
-
-    def handle_update_post(self):
-        vals = self._read_post_fields()
-        if not vals:
-            self.output.setText("Invalid input")
-            return
-
-        code, title, text = vals
-        try:
-            ok = self.controller.update_post(code, code, title, text)
-            if ok:
-                self.output.setText("Updated post")
-            else:
-                self.output.setText("Update failed")
-        except IllegalOperationException:
-            self.output.setText("Post not found")
-        except NoCurrentBlogException:
-            self.output.setText("No current blog")
-
-    def handle_delete_post(self):
-        try:
-            code = int(self.post_code.text().strip())
-        except:
-            self.output.setText("Invalid code")
-            return
-
-        try:
-            ok = self.controller.delete_post(code)
-            if ok:
-                self.output.setText("Deleted post")
-            else:
-                self.output.setText("Delete failed")
-        except NoCurrentBlogException:
-            self.output.setText("No current blog")
-
-    def handle_list_posts(self):
+    # ------------------- POST LOGIC --------------------
+    def load_posts(self):
+        self.post_list.delete(0, tk.END)
         try:
             posts = self.controller.list_posts()
-            out = ""
             for p in posts:
-                out += f"{p.code} | {p.title} | {p.text}\n"
-            self.output.setText(out)
+                self.post_list.insert(tk.END, f"{p.code}: {p.title}")
         except NoCurrentBlogException:
-            self.output.setText("No current blog")
+            messagebox.showwarning("Posts", "No blog selected.")
+        except Exception:
+            messagebox.showerror("Posts", "Could not load posts.")
 
-    def handle_search_posts(self):
-        term = self.post_text.text().strip()
-        if term == "":
-            self.output.setText("Enter search text")
-            return
-
+    def add_post(self):
         try:
-            plist = self.controller.retrieve_posts(term)
-            out = ""
-            for p in plist:
-                out += f"{p.code} | {p.title} | {p.text}\n"
-            self.output.setText(out)
-        except NoCurrentBlogException:
-            self.output.setText("No current blog")
+            t = self.post_title.get().strip()
+            txt = self.post_text.get("1.0", tk.END).strip()
+            if t == "" or txt == "":
+                messagebox.showwarning("Post", "Title and text cannot be empty.")
+                return
+            self.controller.create_post(t, txt)
+            self.post_title.delete(0, tk.END)
+            self.post_text.delete("1.0", tk.END)
+            self.load_posts()
+        except Exception as ex:
+            messagebox.showerror("Post", f"Error: {ex}")
+
+    def delete_post(self):
+        try:
+            idx = self.post_list.curselection()
+            if not idx:
+                messagebox.showwarning("Post", "Select a post first.")
+                return
+            row = self.post_list.get(idx[0])
+            code = int(row.split(":")[0])
+            self.controller.delete_post(code)
+            self.load_posts()
+        except IllegalOperationException:
+            messagebox.showerror("Delete Post", "Cannot delete this post.")
+        except Exception as ex:
+            messagebox.showerror("Delete Post", f"Error: {ex}")
+
+    # ------------------- RUN --------------------
+    def run(self):
+        self.win.mainloop()
 
 
-# end of file
+if __name__ == "__main__":
+    gui = BloggingGUI()
+    gui.run()
