@@ -1,0 +1,11 @@
+* [33m8950313[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mgabe[m[33m)[m Incorrect Framework was used. Revert "Merge branch 'gabe' into 'main'"
+* [33m285769e[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Assignment 5 GUI and main folder changes
+* [33m5720373[m Commit 6: Add Create Post panel + final UI features
+* [33m989ca39[m Commit 5: GUI polish + better messages/layout
+* [33m5f2c989[m Commit 4: Post management UI (create/update/delete/list/retrieve)
+* [33macc0f1c[m Commit 3: Blog CRUD UI (create/update/delete/set/unset)
+* [33m01fc47b[m Commit 2: Add blog list panel (list + retrieve UI)
+* [33mdabd18a[m Commit 1: Basic GUI window and login box
+*   [33m93d105e[m Merge branch 'gabe' into 'main'
+[32m|[m[33m\[m  
+[32m|[m * [33ma79bb4d[m Assignment 5 initial files
