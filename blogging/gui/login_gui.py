@@ -39,6 +39,8 @@ class LoginGUI(QWidget):
 
         try:
             if self.controller.login(username, password):
+                self.username.clear()
+                self.password.clear()
                 self.login_success.emit(username)
         except Exception:
                 self.login_fail.emit()
