@@ -18,6 +18,7 @@ class BloggingGUI(QMainWindow):
         # Continue here with your code!
 
         self.setWindowTitle("Gabriel and Michael's Blogging App")
+        self.resize(800, 500)
         self.setMaximumSize(1920, 1080)
 
         middle = QWidget()

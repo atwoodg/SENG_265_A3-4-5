@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QLineEdit
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from PyQt6.QtCore import pyqtSignal
 from blogging.blog import Blog
+from blogging.gui.posts_gui import PostGUI
 
 class Dashboard(QWidget):
 
@@ -13,7 +14,10 @@ class Dashboard(QWidget):
         self.controller = controller
 
         layout = QVBoxLayout()
+
         self.setLayout(layout)
+
+        self.table_view = QTableView()
 
         self.dash = QWidget()
         dash_layout = QVBoxLayout()
@@ -47,6 +51,15 @@ class Dashboard(QWidget):
         dash_layout.addWidget(delete_blog_button)
         delete_blog_button.clicked.connect(self.open_delete_blog)
 
+        #List blog operations
+        list_blog_button = QPushButton("List Blogs")
+        dash_layout.addWidget(list_blog_button)
+        list_blog_button.clicked.connect(self.do_list_blogs)
+
+        #Choose current blog operations
+        choose_blog_button = QPushButton("Choose Blog")
+        dash_layout.addWidget(choose_blog_button)
+        choose_blog_button.clicked.connect(self.open_choose_blog)
 
         #LOGOUT OPERATIONS
         logout_button = QPushButton("Logout")
@@ -54,12 +67,13 @@ class Dashboard(QWidget):
         logout_button.clicked.connect(self.clicked_logout.emit)
 
         layout.addWidget(self.dash)
+        self.setMinimumWidth(600)
 
         #CONTENT
         self.content = QWidget()
         self.content_layout = QVBoxLayout()
         self.content.setLayout(self.content_layout)
-        layout.addWidget(self.content, stretch=1)
+        layout.addWidget(self.content, 1)
 
 
 
@@ -278,16 +292,14 @@ class Dashboard(QWidget):
 
         search_button.clicked.connect(lambda: self.do_search_blog(id_input.text()))
 
-
-
     def do_delete_blog(self, key):
         self.clear_content()
         warning_label = QLabel("Are you sure you want to delete?")
         self.content_layout.addWidget(warning_label)
-        DELETE_button = QPushButton("DELETE")
-        self.content_layout.addWidget(DELETE_button)
+        delete_button = QPushButton("DELETE")
+        self.content_layout.addWidget(delete_button)
 
-        DELETE_button.clicked.connect(lambda: self.confirm_delete(key))
+        delete_button.clicked.connect(lambda: self.confirm_delete(key))
 
     def confirm_delete(self, key):
         self.clear_content()
@@ -304,6 +316,66 @@ class Dashboard(QWidget):
             self.content_layout.addWidget(QLabel(str(e)))
 
 
+    def do_list_blogs(self):
+        self.clear_content()
+        self.table_v = QTableView()
+        self.table_v.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.content_layout.addWidget(self.table_v, stretch=1)
+
+        try:
+            blogs = self.controller.list_blogs()
+
+            table = QStandardItemModel()
+            table.setHorizontalHeaderLabels(["ID", "NAME", "URL", "EMAIL"])
+
+            for b in blogs:
+                row_items = [QStandardItem(str(b.id)), QStandardItem(str(b.name)), QStandardItem(str(b.url)),
+                             QStandardItem(str(b.email))]
+
+                table.appendRow(row_items)
+
+            self.table_v.setModel(table)
+
+        except Exception as e:
+            self.content_layout.addWidget(QLabel(str(e)))
+
+    def open_choose_blog(self):
+        self.clear_content()
+        label = QLabel("Choose Current Blog")
+        choice_label = QLabel("Blog ID:")
+        choice_input = QLineEdit()
+        choice_button = QPushButton("Choose")
+
+        self.content_layout.addWidget(label)
+        self.content_layout.addWidget(choice_label)
+        self.content_layout.addWidget(choice_input)
+        self.content_layout.addWidget(choice_button)
+
+        choice_button.clicked.connect(lambda: self.do_choose_blog(choice_input.text()))
+
+    def do_choose_blog(self, key):
+        self.clear_content()
+
+        try:
+            self.controller.set_current_blog(key)
+
+            self.post_gui = PostGUI(self.controller)
+            self.post_gui.back_signal.connect(self.close_post_gui)
+
+            self.dash.hide()
+            self.content.hide()
+
+            self.layout().addWidget(self.post_gui)
+
+        except Exception as e:
+            self.content_layout.addWidget(QLabel(str(e)))
+
+    def close_post_gui(self):
+        self.post_gui.setParent(None)
+        del self.post_gui
+
+        self.dash.show()
+        self.content.show()
 
     def clear_content(self):
         while self.content_layout.count():
