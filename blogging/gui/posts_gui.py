@@ -35,3 +35,4 @@ class PostGUI(QWidget):
         layout.addWidget(back_button)
         back_button.clicked.connect(self.back_signal.emit)
 
+    #POST OPERATIONS GO HERE#

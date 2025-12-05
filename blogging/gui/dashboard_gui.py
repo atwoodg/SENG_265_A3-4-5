@@ -69,14 +69,13 @@ class Dashboard(QWidget):
         layout.addWidget(self.dash)
         self.setMinimumWidth(600)
 
-        #CONTENT
+        #CONTENT SECTION
         self.content = QWidget()
         self.content_layout = QVBoxLayout()
         self.content.setLayout(self.content_layout)
         layout.addWidget(self.content, 1)
 
-
-
+    #Opens content section to search for blog
     def open_search_blog(self):
         self.clear_content()
 
@@ -92,6 +91,7 @@ class Dashboard(QWidget):
 
         search_button.clicked.connect(lambda: self.do_search_blog(key_input.text()))
 
+    #Activates search blog from controller and displays
     def do_search_blog(self, key):
         self.clear_content()
 
@@ -104,6 +104,7 @@ class Dashboard(QWidget):
                 self.content_layout.addWidget(QLabel(f"URL: {blog.url}"))
                 self.content_layout.addWidget(QLabel(f"Email: {blog.email}"))
 
+            #If method is called from delete blog operation, this adds button to delete selected blog
             if self.delete_mode == 1:
                 delete_button = QPushButton("DELETE")
                 self.content_layout.addWidget(delete_button)
@@ -116,6 +117,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
+    #Opens content section to retrieve blog ui
     def open_retrieve_blog(self):
         self.clear_content()
 
@@ -133,9 +135,12 @@ class Dashboard(QWidget):
 
         retrieve_button.clicked.connect(lambda: self.do_retrieve_blog(string_input.text()))
 
+    #Activates retrieve blog operations when clicked
     def do_retrieve_blog(self, string):
         self.clear_content()
         self.content_layout.addWidget(self.table_view)
+        self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.content_layout.addWidget(self.table_view, stretch=1)
 
         try:
             blogs = self.controller.retrieve_blogs(string)
@@ -153,7 +158,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
-
+    #Opens ui to create blog in content section
     def open_create_blog(self):
         self.clear_content()
 
@@ -186,6 +191,7 @@ class Dashboard(QWidget):
 
         create_button.clicked.connect(lambda: self.do_create_blog())
 
+    #Creates blog when user names attributes and confirms
     def do_create_blog(self):
         self.clear_content()
 
@@ -201,6 +207,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
+    #Opens ui to update blog
     def open_update_blog(self):
         self.clear_content()
 
@@ -216,7 +223,7 @@ class Dashboard(QWidget):
 
         search_button.clicked.connect(lambda: self.open_edit_update_blog(id_input.text()))
 
-
+    #Opens page of current blog attributes to be adjusted by user
     def open_edit_update_blog(self, id):
         self.clear_content()
         blog = self.controller.search_blog(id)
@@ -258,6 +265,7 @@ class Dashboard(QWidget):
 
         update_button.clicked.connect(lambda: self.do_update_blog(blog.id, id_input.text(), name_input.text(), url_input.text(), email_input.text()))
 
+    #Completes the operation to update blog by controller so it is saved
     def do_update_blog(self, key, new_id, new_name, new_url, new_email):
         self.clear_content()
 
@@ -276,6 +284,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
+    #Opens delete blog page using search blog
     def open_delete_blog(self):
         self.clear_content()
         self.delete_mode = 1
@@ -292,15 +301,17 @@ class Dashboard(QWidget):
 
         search_button.clicked.connect(lambda: self.do_search_blog(id_input.text()))
 
+    #Deletes chosen blog from id
     def do_delete_blog(self, key):
         self.clear_content()
-        warning_label = QLabel("Are you sure you want to delete?")
+        warning_label = QLabel(f"Are you sure you want to delete blog {key}?")
         self.content_layout.addWidget(warning_label)
         delete_button = QPushButton("DELETE")
         self.content_layout.addWidget(delete_button)
 
         delete_button.clicked.connect(lambda: self.confirm_delete(key))
 
+    #Confirmation of blog deletion prompt
     def confirm_delete(self, key):
         self.clear_content()
 
@@ -315,7 +326,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
-
+    #Lists all blogs in table view
     def do_list_blogs(self):
         self.clear_content()
         self.table_v = QTableView()
@@ -339,6 +350,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
+    #Opens page to prompt user to choose blog by id
     def open_choose_blog(self):
         self.clear_content()
         label = QLabel("Choose Current Blog")
@@ -353,6 +365,7 @@ class Dashboard(QWidget):
 
         choice_button.clicked.connect(lambda: self.do_choose_blog(choice_input.text()))
 
+    #Activates set current blog and opens the post ui
     def do_choose_blog(self, key):
         self.clear_content()
 
@@ -370,6 +383,7 @@ class Dashboard(QWidget):
         except Exception as e:
             self.content_layout.addWidget(QLabel(str(e)))
 
+    #Brings back blog dashboard after post is closed
     def close_post_gui(self):
         self.post_gui.setParent(None)
         del self.post_gui
@@ -377,6 +391,7 @@ class Dashboard(QWidget):
         self.dash.show()
         self.content.show()
 
+    #Clears content section of Dashboard widget
     def clear_content(self):
         while self.content_layout.count():
             child = self.content_layout.takeAt(0)
