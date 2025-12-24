@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ## How to use
 Running the system:
 ```bash
-python -m blogging_gui
+python -m blogging.gui.blogging_gui
 ```
 
 ## Tests
@@ -47,7 +47,7 @@ python -m blogging gui
 
 ```
 ## Credits
-Contributors: Gabriel Atwood, Michael Chen, Roberto Bittencourt
-Course: SENG 265 (Software Development Methods)
+- Contributors: Gabriel Atwood, Michael Chen, Roberto Bittencourt
+- Course: SENG 265 (Software Development Methods)
 
 
