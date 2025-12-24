@@ -1,4 +1,4 @@
-# Blogging System (Course Project)
+# Desktop Blogging System (Course Project)
  
 ## Overview
 This project implements a blogging system in Python by using the unittest framework, CRUD operations, file persistence, and a PyQt6 GUI.
@@ -19,8 +19,8 @@ This project implements a blogging system in Python by using the unittest framew
 Clone repo and install required dependencies:
 
 ```bash
-git clone https://github.com/atwoodg/SENG_265_A3-4-5.git
-cd group078
+git clone https://github.com/atwoodg/desktop-blogging-system.git
+cd desktop-blogging-system
 
 #Windows:
 .\.venv\Scripts\activate
