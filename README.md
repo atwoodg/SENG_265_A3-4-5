@@ -1,44 +1,53 @@
-# Blogging System Assignment 
-**Course:** SENG 265 (Software Engineering Fundamentals)  
-**Team:** Group 078  
-**Author:** Gabriel Atwood, Michael Chen  
-**Date:** November 2025  
+# Blogging System (Course Project)
+ 
+## Overview
+This project implements a blogging system in Python by using the unittesting framework, CRUD operations file persistence, and a PyQt6 GUI.
 
----
+## Features
+- Login/logout
+- Create, search, update, and delete blogs and posts.
+- Persistence using DAO (JSON and Pickle storage)
+- Graphical user interface in PyQt6
+- Unittest testing
 
-## 🧭 Overview
-This project implements a blogging system with Python in three parts.
-1. Uses the unittesting framework and CRUD operations to build three main classes:
-- **Blog** – represents a single blog and manages its posts.  
-- **Post** – represents an individual blog post with title, text, creation, and update timestamps.  
-- **Controller** – manages user login, blog creation/deletion, and post operations.
-2. Implements DAO persistence for saving and loading files.
-- **BlogEncoder** - Saves blog as JSON strings.
-- **BlogDecoder** - Loads blog as JSON strings.
-- **BlogDAOJSON** - Stores a blog's collection of posts in JSON.
-- **BlogDAOPickle** - Stores a blog's collection of posts in binary mode using the pickle library.
-3. Implements a GUI for the blogging system.
-- **BloggingGUI** - Main window for the graphical user interface.
-- **Dashboard** - Dashboard to navigate blog and posts. User can Search, Create, Retrieve, Update, and Delete blogs and posts.
-- **Login** - GUI for login screen passed to BloggingGUI.
+## Tech Stack
+- Python 3.9.23
+- Json
+- Pickle
+- PyQt6
+- Unittest
 
+## Installation
+Clone repo and install required dependencies:
 
-All logic follows object-oriented design principles and passes all unit tests supplied with each assignment.
+```bash
+git clone https://github.com/atwoodg/SENG_265_A3-4-5.git
+cd group078
+pip install -r requirements.txt
+```
 
----
+## How to use
+Running the system:
+```bash
+python -m blogging_gui
+```
 
-## ⚙️ How to Run Tests
+## Tests
 From the project root folder (`group078/`):
-
 ```bash
 #1
 python -m unittest discover -s tests -p "*_test.py" -v
 
 #2
-python3 -m unittest -v ./tests/controller_test.py 
-python3 -m unittest -v ./tests/integration_test.py
+python -m unittest -v ./tests/controller_test.py 
+python -m unittest -v ./tests/integration_test.py
 
 #3
-python3 -m blogging gui 
+python -m blogging gui
+
+```
+## Credits
+Contributors: Gabriel Atwood, Michael Chen, Roberto Bittencourt
+Course: SENG 265 (Software Development Methods)
 
 
